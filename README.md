@@ -25,11 +25,12 @@ larynx currently supports the following mathematical operations with the followi
 larynx currently only has a simple output operator 'say' that outputs a single expression and a newline.
 
 #### Variables
-variables are declared in larynx with the 'is' keyword. the syntax is:
+variables are declared and assigned in larynx with the 'is' keyword. the syntax is:
 ```
 [IDENTIFIER] is [EXPRESSION]
 ```
 filling in any variable name for \[IDENTIFIER] and any expression for \[EXPRESSION].
+after this, the identifier will represent the expression in code.
 
 
 #### Logical operators
