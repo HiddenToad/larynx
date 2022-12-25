@@ -3,11 +3,11 @@ mod larynx;
 
 fn main() {
     let filename = std::env::args().skip(1).next().unwrap_or_else(|| {
-        larynx::err_with("larynx expects a filename. example usage:\nlarynx file.lx")
+        larynx::err("larynx expects a filename. example usage:\nlarynx file.lx")
     });
 
     let contents = std::fs::read_to_string(&filename).unwrap_or_else(|_| {
-        larynx::err_with(&format!(
+        larynx::err(&format!(
         "there was a problem opening {filename}. are you sure it exists at that exact location?"
     ))
     });

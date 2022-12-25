@@ -44,3 +44,14 @@ equality of any 2 expressions can be checked with the 'equals' keyword, which ev
 
 #### Concatenation
 if the 'plus' operator is used on two texts, they will be concatenated.
+
+#### Control flow
+if statements are done like this:
+```
+if [EXPRESSION] then
+ [BLOCK]
+end
+```
+where \[EXPRESSION] is any truth value and \[BLOCK] is any amount of larynx code.
+
+else statements are currently unstable.

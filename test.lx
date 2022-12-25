@@ -1,8 +1,13 @@
-say "hello " plus "world" plus "!"
+x is 5
+y is 4
+cmp is x equals y
 
-x is 5 divided by 2
-y is x minus 2 equals 3 times 2
-say "y is:"
-say y
-say "x = 2.5 or y is true:"
-say x equals 2.5 or y
+if cmp then
+ say "eq"
+end
+
+if not cmp then
+ say "ne"
+end
+
+
