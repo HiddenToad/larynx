@@ -1,3 +1,5 @@
+say "hello " plus "world" plus "!"
+
 x is 5 divided by 2
 y is x minus 2 equals 3 times 2
 say "y is:"
