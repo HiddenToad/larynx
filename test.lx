@@ -5,9 +5,6 @@ cmp is x equals y
 if cmp then
  say "eq"
 end
-
-if not cmp then
+else
  say "ne"
 end
-
-

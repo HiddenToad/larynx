@@ -327,7 +327,7 @@ impl Expr {
              },
             Expr::If(cond, block, elseblock) => {
                 if let Value::Truth(t) = cond.eval(variables){
-                    if let block @ Expr::Block(_) = &**block{
+                    if let Expr::Block(_) = &**block{
                         if t{
                             block.eval(variables)
                         } else {
@@ -490,20 +490,20 @@ fn eat<'a>(i: &mut impl Iterator<Item = &'a Token>, val: Token){
 }
 
 fn eat_block_delimited_by<'a>(iter: &mut std::iter::Peekable<impl Iterator<Item = &'a Token>>, start: Token, end: Token) -> Vec<Token>{
+    //println!("eating block with format {start} BLOCK {end}");
     let mut block_tokens = vec![];
     let mut found_block = false;
     let mut depth = 1;
-    while let Some(&t) = iter.peek(){
-        if t == &Token::Newline || t == &Token::Else{
-            iter.next();
-        } else {
-            break;
-        }
-    }
+
     while let Some(token) = iter.next(){
-        if token == &Token::End{
+
+        if token == &Token::Newline{
+            continue;
+        }
+
+        if token == &end{
             depth -= 1;
-        } else if token == &Token::If{
+        } else if token == &start{
             depth += 1;
         }
 
@@ -515,7 +515,7 @@ fn eat_block_delimited_by<'a>(iter: &mut std::iter::Peekable<impl Iterator<Item 
     }
 
     if !found_block{
-        err("expected block");
+        err(&format!("expected a block between `{start}` and `{end}`"));
     } else {
         if block_tokens.is_empty(){
             block_tokens.push(Token::Nothing);
@@ -526,13 +526,13 @@ fn eat_block_delimited_by<'a>(iter: &mut std::iter::Peekable<impl Iterator<Item 
 }
 
 pub fn parse(input: Vec<Token>) -> Vec<Expr> {
-    println!("parse called with tokens: {input:#?}");
+    //println!("parse called with tokens: {input:#?}");
     let mut operands = vec![];
     let mut output = vec![];
     let mut iter = input.iter().peekable();
     let mut operators: Vec<Token> = vec![Token::SentinelOp];
     while let Some(token) = iter.next() {
-        println!("operators: {operators:#?}\n\noperands: {operands:#?}\n\noutput: {output:#?}\n\n");
+        //println!("operators: {operators:#?}\n\noperands: {operands:#?}\n\noutput: {output:#?}\n\n");
         match token {
             Token::Num(n) => {
                 operands.push(Expr::Value(Value::Number(*n)));
@@ -592,13 +592,13 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                 }
             
                 let block_tokens = eat_block_delimited_by(&mut iter, Token::Then, Token::End);
+           
+                
+                while iter.peek() == Some(&&Token::Newline){
+                    eat(&mut iter, Token::Newline);
+                }
                 let falseblock_tokens = {
-                    while iter.peek() == Some(&&Token::Newline){
-                        eat(&mut iter, Token::Newline);
-                    }
-
-
-                    if iter.peek() == Some(&&Token::Else){
+                    if iter.next() == Some(&&Token::Else){
                         Some(Box::new(parse(eat_block_delimited_by(&mut iter, Token::Else, Token::End))[0].clone()))
                     } else {
                         None
@@ -609,15 +609,17 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                 }
                 
                 cond_tokens.push(Token::Newline);
-                println!("{cond_tokens:?}");
+                //println!("{cond_tokens:?}");
                 let cond_expr = parse(cond_tokens)[0].clone();
                 let block_expr = parse(block_tokens);
 
                 output.push(Expr::If(Box::new(cond_expr), Box::new(Expr::Block(block_expr)), falseblock_tokens));
                 
-            }
-
-            Token::By => {},
+            },
+      
+            Token::By | Token::Else | Token::End => {
+                err(&format!("unexpected token {token}"))
+            },
             Token::Newline => {
 
                 if let Some(_) = operators.last(){
@@ -636,10 +638,10 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                 }
 
 
-                println!("operators: {operators:#?}\n\noperands: {operands:#?}\n\noutput: {output:#?}\n\n");
+               //println!("operators: {operators:#?}\n\noperands: {operands:#?}\n\noutput: {output:#?}\n\n");
 
             }
-            _ => unreachable!()
+            _ => panic!("{}", token)
         }
     }
 
