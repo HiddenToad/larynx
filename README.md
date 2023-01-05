@@ -54,4 +54,13 @@ end
 ```
 where \[EXPRESSION] is any truth value and \[BLOCK] is any amount of larynx code.
 
-else statements are currently unstable.
+else statements may be appended to an if statement after the `end` keyword. example:
+
+```
+if [EXPRESSION] then
+ [BLOCK]
+end
+else
+	[BLOCK]
+end
+```
