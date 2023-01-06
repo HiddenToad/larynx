@@ -5,7 +5,7 @@
 ### About
 larynx is very much in development. it should not be expected to always run properly or have any kind of stable API. when it is complete, larynx will be a tool for those who want to learn to program but find themselves intimidated by symbols and the like.
 
-### Docs
+## Docs
 
 #### Data types
 larynx currently has the following data types:
