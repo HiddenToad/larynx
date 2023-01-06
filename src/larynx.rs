@@ -489,7 +489,7 @@ fn eat<'a>(i: &mut impl Iterator<Item = &'a Token>, val: Token){
 }
 
 fn eat_block_delimited_by<'a>(iter: &mut std::iter::Peekable<impl Iterator<Item = &'a Token>>, start: Token, end: Token) -> Vec<Token>{
-    //println!("eating block with format {start} BLOCK {end}");
+    println!("eating block with format {start} BLOCK {end}");
     let mut block_tokens = vec![];
     let mut found_block = false;
     let mut depth = 1;
@@ -522,12 +522,13 @@ fn eat_block_delimited_by<'a>(iter: &mut std::iter::Peekable<impl Iterator<Item 
         block_tokens.dedup_by(|a, b|{
             (a == &mut Token::Newline) && b == a
         });
+        println!("final block: {block_tokens:?}");
         block_tokens
     }
 }
 
 pub fn parse(input: Vec<Token>) -> Vec<Expr> {
-    //println!("parse called with tokens: {input:#?}");
+    println!("parse called with tokens: {input:#?}");
     let mut operands = vec![];
     let mut output = vec![];
     let mut iter = input.iter().peekable();
@@ -590,14 +591,15 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                     }
                 }
                 if !found_cond{
-                    err("expected truth expression in while loop!");
+                    err("expected truth expression in while loop between `while` and `do`!");
                 }
 
                 let block_tokens = eat_block_delimited_by(&mut iter, Token::Do, Token::End);
                 cond_tokens.push(Token::Newline);
-
+          
                 let cond_expr = parse(cond_tokens)[0].clone();
                 let block_expr = parse(block_tokens);
+
 
                 output.push(Expr::While(Box::new(cond_expr), Box::new(Expr::Block(block_expr))));
 
@@ -661,7 +663,7 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                     } 
                     operators = vec![Token::SentinelOp];
                     output.push(operands.pop().unwrap_or_else(||{
-                        err("expected operator");
+                        Expr::Nothing
                     }));
                 }
 

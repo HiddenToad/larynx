@@ -1,11 +1,7 @@
-x is 10
+x is 0
 y is 10
 
-if x equals y then
-    say "it works"
-    say "maybe"
-end
-else
-    say "ne"
-    say "not at all"
+while x equals y equals false do
+    x is x plus 1
+    say x
 end
