@@ -1,10 +1,11 @@
-x is 5
-y is 4
-cmp is x equals y
+x is 10
+y is 10
 
-if cmp then
- say "eq"
+if x equals y then
+    say "it works"
+    say "maybe"
 end
 else
- say "ne"
+    say "ne"
+    say "not at all"
 end

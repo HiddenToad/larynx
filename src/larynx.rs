@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::RwLock, fmt::Display};
 
 static LINE_NUM: RwLock<u32> = RwLock::new(0);
 
+
 pub fn err(msg: &str) -> ! {
     eprintln!("larynx error at line {}:\n{msg}", LINE_NUM.read().unwrap());
     std::process::exit(1);
@@ -57,11 +58,10 @@ impl Token {
     pub fn priority(&self) -> u32 {
         match self {
             Token::SentinelOp => 0,
-            Token::Say | Token::Is | Token::If | Token::While => 1,
+            Token::Say | Token::Is | Token::Not => 1,
             Token::And | Token::Or | Token::Equals => 2,
             Token::Plus | Token::Minus => 3,
             Token::Divided | Token::Times => 4 ,
-            Token::Not => 5,
             _ => unreachable!(),
         }
     }
@@ -152,7 +152,6 @@ pub enum BinOp {
     And(Box<Expr>, Box<Expr>),
     Or(Box<Expr>, Box<Expr>),
     Equals(Box<Expr>, Box<Expr>),
-
 }
 
 #[derive(Clone, Debug)]
@@ -172,6 +171,7 @@ impl Expr {
 
 
     pub fn eval(&self, variables: &mut HashMap<String, Value>) -> Value {
+        //println!("eval on {self:?}");
         match self {
             Expr::Value(val) => val.clone(),
             Expr::UnOp(op) => match op {
@@ -312,20 +312,17 @@ impl Expr {
                 }
             }
             Expr::Block(exprs) => {
-                let mut iter = exprs.iter();
-                
-                let last = iter.next_back();
+                let iter = exprs.iter();
+                let mut final_val = Value::Nothing;
+
                 for expr in iter{
-                    expr.eval(variables);
-                    *LINE_NUM.write().unwrap() += 1;
+                    final_val = expr.eval(variables);
+
                 }
-                if let Some(last) = last{
-                    last.eval(variables)
-                } else {
-                    Value::Nothing
-                }
+                final_val
              },
             Expr::If(cond, block, elseblock) => {
+
                 if let Value::Truth(t) = cond.eval(variables){
                     if let Expr::Block(_) = &**block{
                         if t{
@@ -347,7 +344,7 @@ impl Expr {
 
             Expr::While(cond, block) => {
                 if let Value::Truth(t) = cond.eval(variables){
-                    if let block @ Expr::Block(_) = &**block{
+                    if let Expr::Block(_) = &**block{
                         let mut final_val = Value::Nothing;
                         if t{
                             final_val = block.eval(variables);
@@ -357,10 +354,10 @@ impl Expr {
                         }
                         final_val
                     } else {
-                        err(&format!("expression between 'then' and 'end' must be a block, not `{}`", block.eval(variables).type_str()))
+                        err(&format!("expression between 'do' and 'end' must be a block, not `{}`", block.eval(variables).type_str()))
                     }
                 } else {
-                    err(&format!("expression between 'if' and 'then' must be a truth, not `{}`", cond.eval(variables).type_str()))
+                    err(&format!("expression between 'while' and 'do' must be a truth, not `{}`", cond.eval(variables).type_str()))
                 }
             },
 
@@ -446,6 +443,8 @@ pub fn lex(input: &str) -> Vec<Token> {
         tokens.push(Token::Newline);
         *LINE_NUM.write().unwrap() += 1;
     }
+    *LINE_NUM.write().unwrap() = 0;
+
     tokens
 }
 
@@ -495,12 +494,10 @@ fn eat_block_delimited_by<'a>(iter: &mut std::iter::Peekable<impl Iterator<Item 
     let mut found_block = false;
     let mut depth = 1;
 
+    while iter.peek() == Some(&&Token::Newline){
+        iter.next();
+    }
     while let Some(token) = iter.next(){
-
-        if token == &Token::Newline{
-            continue;
-        }
-
         if token == &end{
             depth -= 1;
         } else if token == &start{
@@ -511,6 +508,7 @@ fn eat_block_delimited_by<'a>(iter: &mut std::iter::Peekable<impl Iterator<Item 
             found_block = true;
             break;
         }
+
         block_tokens.push(token.clone());
     }
 
@@ -520,7 +518,10 @@ fn eat_block_delimited_by<'a>(iter: &mut std::iter::Peekable<impl Iterator<Item 
         if block_tokens.is_empty(){
             block_tokens.push(Token::Nothing);
         }
-        block_tokens.push(Token::Newline);
+
+        block_tokens.dedup_by(|a, b|{
+            (a == &mut Token::Newline) && b == a
+        });
         block_tokens
     }
 }
@@ -553,18 +554,19 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                 operands.push(Expr::Nothing);
             }             
 
-            | Token::Divided
+            Token::Divided
+            | Token::Plus
+            | Token::Minus
+            | Token::Times
             | Token::Is
             | Token::And
             | Token::Or
             | Token::Equals
             | Token::Say
-            | Token::Not 
-            | Token::While => {
+            | Token::Not => {
                 
                 match *token{
                     Token::Divided => eat(&mut iter, Token::By),
-                    
                     _ => {}
                 }
 
@@ -576,6 +578,31 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                 } 
                 operators.push(token.clone());
             }
+            Token::While => {
+                let mut cond_tokens = vec![];
+                let mut found_cond = false;
+                while let Some(token) = iter.next(){
+                    if token != &Token::Do{
+                        cond_tokens.push(token.clone());
+                    } else {
+                        found_cond = true;
+                        break;
+                    }
+                }
+                if !found_cond{
+                    err("expected truth expression in while loop!");
+                }
+
+                let block_tokens = eat_block_delimited_by(&mut iter, Token::Do, Token::End);
+                cond_tokens.push(Token::Newline);
+
+                let cond_expr = parse(cond_tokens)[0].clone();
+                let block_expr = parse(block_tokens);
+
+                output.push(Expr::While(Box::new(cond_expr), Box::new(Expr::Block(block_expr))));
+
+            },
+
             Token::If => {
                 let mut cond_tokens = vec![];
                 let mut found_cond = false;
@@ -588,11 +615,11 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                     }
                 }
                 if !found_cond{
-                    err("expected conditon");
+                    err("expected truth expression in if statement!");
                 }
             
                 let block_tokens = eat_block_delimited_by(&mut iter, Token::Then, Token::End);
-           
+
                 
                 while iter.peek() == Some(&&Token::Newline){
                     eat(&mut iter, Token::Newline);
@@ -621,7 +648,6 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                 err(&format!("unexpected token {token}"))
             },
             Token::Newline => {
-
                 if let Some(_) = operators.last(){
                     while iter.peek() == Some(&&Token::Newline){
                         *LINE_NUM.write().unwrap() += 1;
@@ -634,7 +660,9 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                         make_tree(&op, &mut operands)
                     } 
                     operators = vec![Token::SentinelOp];
-                    output.push(operands.pop().unwrap());
+                    output.push(operands.pop().unwrap_or_else(||{
+                        err("expected operator");
+                    }));
                 }
 
 
