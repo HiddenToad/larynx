@@ -17,7 +17,7 @@ fn main() {
 
     let mut variables: HashMap<String, larynx::Value> = HashMap::new();
     for expr in ast {
-        //println!("evaluating expr: {expr:#?}");
+        println!("evaluating expr: {expr:#?}");
         expr.eval(&mut variables);
     }
 }

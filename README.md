@@ -33,6 +33,12 @@ filling in any variable name for \[IDENTIFIER] and any expression for \[EXPRESSI
 after this, the identifier will represent the expression in code.
 
 
+variables can be deallocated and deleted with the 'delete' keyword. the syntax is:
+```
+delete [IDENTIFIER]
+```
+
+
 #### Logical operators
 larynx supports the following logical operators for truth values:
 * and
@@ -49,7 +55,7 @@ if the 'plus' operator is used on two texts, they will be concatenated.
 if statements are done like this:
 ```
 if [EXPRESSION] then
- [BLOCK]
+    [BLOCK]
 end
 ```
 where \[EXPRESSION] is any truth value and \[BLOCK] is any amount of larynx code.
@@ -58,9 +64,19 @@ else statements may be appended to an if statement after the `end` keyword. exam
 
 ```
 if [EXPRESSION] then
- [BLOCK]
+    [BLOCK]
 end
 else
- [BLOCK]
+    [BLOCK]
 end
 ```
+
+#### Loops
+currently, the only loops in larynx are while loops. while loops are declared as follows:
+
+```
+while [EXPRESSION] do
+    [BLOCK]
+end
+```
+

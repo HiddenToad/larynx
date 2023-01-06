@@ -1,7 +1,16 @@
 x is 0
 y is 10
+i is 4
 
-while x equals y equals false do
-    x is x plus 1
+
+while not x equals 10 do
     say x
+    if not i equals 1 then
+        i is i minus 1
+    end
+    x is x plus i
 end
+
+say x
+delete x
+delete x

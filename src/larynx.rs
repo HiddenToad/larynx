@@ -20,7 +20,7 @@ fn bin_op_err(op: &str, t1: &str, t2: &str) -> ! {
 
 fn no_var_err(varname: &str) -> ! {
     err(&format!(
-        "variable `{varname}` not found! are you sure you declared it?"
+        "variable `{varname}` not found! are you sure you declared it and didn't delete it?"
     ))
 }
 
@@ -48,6 +48,7 @@ pub enum Token {
     Do,
     End,
     Else,
+    Delete,
     Ident(String),
     SentinelOp,
     Newline,
@@ -58,7 +59,7 @@ impl Token {
     pub fn priority(&self) -> u32 {
         match self {
             Token::SentinelOp => 0,
-            Token::Say | Token::Is | Token::Not => 1,
+            Token::Say | Token::Is | Token::Not | Token::Delete => 1,
             Token::And | Token::Or | Token::Equals => 2,
             Token::Plus | Token::Minus => 3,
             Token::Divided | Token::Times => 4 ,
@@ -86,6 +87,7 @@ impl Token {
         match self{
             Token::Say => Some(Expr::UnOp(UnOp::Say(Box::new(arg)))),
             Token::Not => Some(Expr::UnOp(UnOp::Not(Box::new(arg)))),
+            Token::Delete => Some(Expr::UnOp(UnOp::Delete(Box::new(arg)))),
             _ => None
         }
     }
@@ -140,6 +142,7 @@ impl Value {
 pub enum UnOp {
     Not(Box<Expr>),
     Say(Box<Expr>),
+    Delete(Box<Expr>)
 }
 
 #[derive(Clone, Debug)]
@@ -185,6 +188,17 @@ impl Expr {
                 }
                 UnOp::Say(arg) => {
                     println!("{}", arg.eval(variables).to_string());
+                    Value::Nothing
+                }
+                UnOp::Delete(arg) => {
+                    if let Expr::Ident(s) = &**arg{
+                        variables.remove(s).unwrap_or_else(||{
+                            err(&format!("cannot delete variable {s} because it doesn't exist."))
+                        });
+                    } else {
+                        unreachable!()
+                    }
+
                     Value::Nothing
                 }
             },
@@ -426,6 +440,7 @@ pub fn lex(input: &str) -> Vec<Token> {
                 "do" => Token::Do,
                 "end" => Token::End,
                 "else" => Token::Else,
+                "delete" => Token::Delete,
                 _ if word.starts_with('"') && word.ends_with('"') => {
                     let mut trimmed = word.to_string().replace("­", " ");
                     trimmed.remove(0);
@@ -472,7 +487,7 @@ fn make_tree(last: &Token, operands: &mut Vec<Expr>,){
                 let (a, b) = get_bin(operands);
                 operands.push(last.to_binop(a, b).unwrap());
             }
-            Token::Say | Token::Not => {
+            Token::Say | Token::Not | Token::Delete => {
                 let arg = get_un(operands);
                 operands.push(last.to_unop(arg).unwrap())
             },
@@ -489,7 +504,7 @@ fn eat<'a>(i: &mut impl Iterator<Item = &'a Token>, val: Token){
 }
 
 fn eat_block_delimited_by<'a>(iter: &mut std::iter::Peekable<impl Iterator<Item = &'a Token>>, start: Token, end: Token) -> Vec<Token>{
-    println!("eating block with format {start} BLOCK {end}");
+    //println!("eating block with format {start} BLOCK {end}");
     let mut block_tokens = vec![];
     let mut found_block = false;
     let mut depth = 1;
@@ -500,7 +515,7 @@ fn eat_block_delimited_by<'a>(iter: &mut std::iter::Peekable<impl Iterator<Item 
     while let Some(token) = iter.next(){
         if token == &end{
             depth -= 1;
-        } else if token == &start{
+        } else if token == &start || token == &Token::If || token == &Token::While{
             depth += 1;
         }
 
@@ -511,6 +526,7 @@ fn eat_block_delimited_by<'a>(iter: &mut std::iter::Peekable<impl Iterator<Item 
 
         block_tokens.push(token.clone());
     }
+
 
     if !found_block{
         err(&format!("expected a block between `{start}` and `{end}`"));
@@ -523,6 +539,7 @@ fn eat_block_delimited_by<'a>(iter: &mut std::iter::Peekable<impl Iterator<Item 
             (a == &mut Token::Newline) && b == a
         });
         println!("final block: {block_tokens:?}");
+
         block_tokens
     }
 }
@@ -564,7 +581,8 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
             | Token::Or
             | Token::Equals
             | Token::Say
-            | Token::Not => {
+            | Token::Not
+            | Token::Delete => {
                 
                 match *token{
                     Token::Divided => eat(&mut iter, Token::By),
@@ -627,7 +645,8 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                     eat(&mut iter, Token::Newline);
                 }
                 let falseblock_tokens = {
-                    if iter.next() == Some(&&Token::Else){
+                    if iter.peek() == Some(&&Token::Else){
+                        iter.next();
                         Some(Box::new(parse(eat_block_delimited_by(&mut iter, Token::Else, Token::End))[0].clone()))
                     } else {
                         None
@@ -662,9 +681,8 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                         make_tree(&op, &mut operands)
                     } 
                     operators = vec![Token::SentinelOp];
-                    output.push(operands.pop().unwrap_or_else(||{
-                        Expr::Nothing
-                    }));
+
+                    output.push(operands.pop().unwrap_or(Expr::Nothing));
                 }
 
 
