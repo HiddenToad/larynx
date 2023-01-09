@@ -7,10 +7,13 @@ while not x equals 10 do
     say x
     if not i equals 1 then
         i is i minus 1
+    end 
+    else
+        i is 4
     end
+    
     x is x plus i
 end
 
 say x
-delete x
 delete x

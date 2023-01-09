@@ -521,7 +521,7 @@ fn eat_block_delimited_by<'a>(
     while let Some(token) = iter.next() {
         if token == &end {
             depth -= 1;
-        } else if token == &start || token == &Token::If || token == &Token::While {
+        } else if token == &start || token == &Token::If || token == &Token::While || token == &Token::Else {
             depth += 1;
         }
 
