@@ -1,9 +1,11 @@
 x is 0
 y is 10
 i is 4
+z is 9999999999999999999999999999999999999999999999999
+say z
 
 
-while not x equals 10 do
+while not x equals y do
     say x
     if not i equals 1 then
         i is i minus 1
@@ -11,9 +13,10 @@ while not x equals 10 do
     else
         i is 4
     end
-    
+
     x is x plus i
 end
 
+
+
 say x
-delete x

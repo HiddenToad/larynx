@@ -1,6 +1,11 @@
 use std::collections::HashMap;
 mod larynx;
 
+const DEBUG_LEXER: bool = false;
+const DEBUG_PARSER: bool = true;
+const DEBUG_BLOCK_PARSING: bool = false;
+const DEBUG_OPERATOR_STACK: bool = false;
+
 fn main() {
     let filename = std::env::args().skip(1).next().unwrap_or_else(|| {
         larynx::err("larynx expects a filename. example usage:\nlarynx file.lx")
@@ -17,7 +22,9 @@ fn main() {
 
     let mut variables: HashMap<String, larynx::Value> = HashMap::new();
     for expr in ast {
-        //println!("evaluating expr: {expr:#?}");
+        if DEBUG_PARSER{
+            println!("evaluating expr: {expr:#?}");
+        }
         expr.eval(&mut variables);
     }
 }

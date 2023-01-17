@@ -1,6 +1,8 @@
 use std::{collections::HashMap, fmt::Display, sync::RwLock};
 
-static LINE_NUM: RwLock<u32> = RwLock::new(0);
+use crate::{DEBUG_BLOCK_PARSING, DEBUG_LEXER, DEBUG_OPERATOR_STACK};
+
+static LINE_NUM: RwLock<u32> = RwLock::new(1);
 
 pub fn err(msg: &str) -> ! {
     eprintln!("larynx error at line {}:\n{msg}", LINE_NUM.read().unwrap());
@@ -510,12 +512,15 @@ fn eat_block_delimited_by<'a>(
     start: Token,
     end: Token,
 ) -> Vec<Token> {
-    //println!("eating block with format {start} BLOCK {end}");
+    if DEBUG_BLOCK_PARSING{
+        println!("eating block with format {start} BLOCK {end}");
+    }
     let mut block_tokens = vec![];
     let mut found_block = false;
     let mut depth = 1;
 
     while iter.peek() == Some(&&Token::Newline) {
+        *LINE_NUM.write().unwrap() += 1;
         iter.next();
     }
     while let Some(token) = iter.next() {
@@ -523,6 +528,8 @@ fn eat_block_delimited_by<'a>(
             depth -= 1;
         } else if token == &start || token == &Token::If || token == &Token::While || token == &Token::Else {
             depth += 1;
+        } else if token == &Token::Newline{
+            *LINE_NUM.write().unwrap() += 1;
         }
 
         if depth == 0 {
@@ -541,20 +548,26 @@ fn eat_block_delimited_by<'a>(
         }
 
         block_tokens.dedup_by(|a, b| (a == &mut Token::Newline) && b == a);
-        println!("final block: {block_tokens:?}");
+        if DEBUG_BLOCK_PARSING{
+            println!("final block: {block_tokens:?}");
+        }
 
         block_tokens
     }
 }
 
 pub fn parse(input: Vec<Token>) -> Vec<Expr> {
-    println!("parse called with tokens: {input:#?}");
+    if DEBUG_LEXER{
+        println!("parse called with tokens: {input:#?}");
+    }
     let mut operands = vec![];
     let mut output = vec![];
     let mut iter = input.iter().peekable();
     let mut operators: Vec<Token> = vec![Token::SentinelOp];
     while let Some(token) = iter.next() {
-        //println!("operators: {operators:#?}\n\noperands: {operands:#?}\n\noutput: {output:#?}\n\n");
+        if DEBUG_OPERATOR_STACK{
+            println!("operators: {operators:#?}\n\noperands: {operands:#?}\n\noutput: {output:#?}\n\n");
+        }
         match token {
             Token::Num(n) => {
                 operands.push(Expr::Value(Value::Number(*n)));
@@ -614,6 +627,7 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                 cond_tokens.push(Token::Newline);
 
                 let cond_expr = parse(cond_tokens)[0].clone();
+                *LINE_NUM.write().unwrap() -= 1; 
                 let block_expr = parse(block_tokens);
 
                 output.push(Expr::While(
@@ -658,7 +672,6 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                 }
 
                 cond_tokens.push(Token::Newline);
-                //println!("{cond_tokens:?}");
                 let cond_expr = parse(cond_tokens)[0].clone();
                 let block_expr = parse(block_tokens);
 
@@ -671,8 +684,12 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
 
             Token::By | Token::Else | Token::End => err(&format!("unexpected token {token}")),
             Token::Newline => {
+     //           *LINE_NUM.write().unwrap() += 1;
+
+                println!("newline found at end");
                 if let Some(_) = operators.last() {
                     while iter.peek() == Some(&&Token::Newline) {
+                        println!("newline found subsequent");
                         *LINE_NUM.write().unwrap() += 1;
                         iter.next();
                     }
