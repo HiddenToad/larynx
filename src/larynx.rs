@@ -686,10 +686,10 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
             Token::Newline => {
      //           *LINE_NUM.write().unwrap() += 1;
 
-                println!("newline found at end");
+                //println!("newline found at end");
                 if let Some(_) = operators.last() {
                     while iter.peek() == Some(&&Token::Newline) {
-                        println!("newline found subsequent");
+                        //println!("newline found subsequent");
                         *LINE_NUM.write().unwrap() += 1;
                         iter.next();
                     }
