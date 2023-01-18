@@ -35,6 +35,7 @@ pub enum Token {
     Minus,
     Times,
     Divided,
+    Remainder,
     By,
     Say,
     Not,
@@ -71,7 +72,7 @@ impl Token {
             Token::And | Token::Or  => 2,
             Token::Equals => 3,
             Token::Plus | Token::Minus => 4,
-            Token::Divided | Token::Times => 5,
+            Token::Divided | Token::Times | Token::Remainder => 5,
             _ => unreachable!(),
         }
     }
@@ -88,6 +89,7 @@ impl Token {
             Token::Or => Some(Expr::BinOp(BinOp::Or(a, b))),
             Token::And => Some(Expr::BinOp(BinOp::And(a, b))),
             Token::Equals => Some(Expr::BinOp(BinOp::Equals(a, b))),
+            Token::Remainder => Some(Expr::BinOp(BinOp::Remainder(a, b))),
             _ => None,
         }
     }
@@ -159,6 +161,7 @@ pub enum BinOp {
     And(Box<Expr>, Box<Expr>),
     Or(Box<Expr>, Box<Expr>),
     Equals(Box<Expr>, Box<Expr>),
+    Remainder(Box<Expr>, Box<Expr>)
 }
 
 #[derive(Clone, Debug)]
@@ -286,6 +289,24 @@ impl Expr {
                         }
                     } else {
                         op_err("divided by", arg1.type_str())
+                    }
+                }
+
+                BinOp::Remainder(arg1, arg2) =>{
+                    let arg1 = arg1.eval(variables);
+                    let arg2 = arg2.eval(variables);
+                    if let Value::Number(n1) = arg1 {
+                        if let Value::Number(n2) = arg2 {
+                            if n2 != 0.{
+                                Value::Number(n1 % n2)
+                            } else {
+                                err("cannot calculate remainder when divided by zero!")
+                            }
+                        } else {
+                            bin_op_err("remainder", "number", arg2.type_str());
+                        }
+                    } else {
+                        op_err("remainder", arg1.type_str());
                     }
                 }
 
@@ -509,6 +530,7 @@ pub fn lex(input: &str) -> Vec<Token> {
                 "times" => Token::Times,
                 "divided" => Token::Divided,
                 "by" => Token::By,
+                "remainder" => Token::Remainder,
                 "say" => Token::Say,
                 "nothing" => Token::Nothing,
                 "true" => Token::True,
@@ -578,7 +600,8 @@ fn make_tree(last: &Token, operands: &mut Vec<Expr>) {
         | Token::Is
         | Token::And
         | Token::Or
-        | Token::Equals => {
+        | Token::Equals |
+        Token::Remainder => {
             let (a, b) = get_bin(operands);
             operands.push(last.to_binop(a, b).unwrap());
         }
@@ -620,6 +643,9 @@ fn eat_block_delimited_by<'a>(
         if token == &end {
             depth -= 1;
         } else if token == &start || token == &Token::If || token == &Token::While || token == &Token::Else || token == &Token::For{
+            if token == &Token::Else && iter.peek().unwrap_or_else(||{err("unexpected end of file when parsing block")}) == &&Token::If{
+                continue;
+            }
             depth += 1;
 
         } else if token == &Token::Newline{
@@ -691,7 +717,8 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
             | Token::Equals
             | Token::Say
             | Token::Not
-            | Token::Delete => {
+            | Token::Delete
+            | Token::Remainder => {
                 match *token {
                     Token::Divided => eat(&mut iter, Token::By),
                     _ => {}
@@ -752,6 +779,7 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                 while iter.peek() == Some(&&Token::Newline) {
                     eat(&mut iter, Token::Newline);
                 }
+
                 let falseblock_tokens = {
                     if iter.peek() == Some(&&Token::Else) {
                         iter.next();

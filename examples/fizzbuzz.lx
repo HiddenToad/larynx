@@ -1,0 +1,14 @@
+for every i from 1 to 100 do
+    if i remainder 15 equals 0 then
+        say "FizzBuzz"
+    end
+    else if i remainder 3 equals 0 then
+        say "Fizz"
+    end
+    else if i remainder 5 equals 0 then
+        say "Buzz"
+    end
+    else
+        say i
+    end
+end
