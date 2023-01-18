@@ -56,7 +56,6 @@ pub enum Token {
     From,
     To,
     Stepping,
-    Backwards,
 
 
     Ident(String),
@@ -163,15 +162,15 @@ pub enum BinOp {
 }
 
 #[derive(Clone, Debug)]
-enum IterDirection{
+pub enum IterDirection{
     Forwards,
     Backwards
 }
 
 #[derive(Clone, Debug)]
-enum ForBlock{
+pub enum ForBlock{
     Iter(Box<Expr>, Box<Expr>, Box<Expr>, usize, IterDirection), //Iter(Ident, Collection, Block, Step, Direction)
-    Range(Box<Expr>, Box<Expr>, Box<Expr>, Box<Expr>, Box<Expr>, IterDirection) //Iter(Ident, Start, End, Block, Step, Direction)
+    Range(Box<Expr>, Box<Expr>, Box<Expr>, Box<Expr>, Box<Expr>) //Iter(Ident, Start, End, Block, Step, Direction)
 }
 
 #[derive(Clone, Debug, Default)]
@@ -399,7 +398,7 @@ impl Expr {
                 }
             }
 
-            Expr::For(ForBlock::Range(ident, start, end, block, step, direction)) => {
+            Expr::For(ForBlock::Range(ident, start, end, block, step,)) => {
                 if let Expr::Ident(name) = &**ident{
 
                         let (start, end) = (start.eval(variables), end.eval(variables));
@@ -429,9 +428,8 @@ impl Expr {
                             err("for loop step must be a whole number");
                         } 
                         let step = step as usize;
-                        match direction{
-                            
-                            IterDirection::Forwards => {
+                        match start < end{
+                            true => {
                                 let mut ret: Value = Value::Nothing;
                                 for i in (start..=end).step_by(step){
                                     let var: &mut Value = variables.get_mut(name).unwrap_or_else(||{
@@ -442,9 +440,9 @@ impl Expr {
                                 }
                                 ret
                             },
-                            IterDirection::Backwards => {
+                            false => {
                                 let mut ret: Value = Value::Nothing;
-                                for i in (start..=end).rev().step_by(step){
+                                for i in (end..=start).rev().step_by(step){
                                     let var: &mut Value = variables.get_mut(name).unwrap_or_else(||{
                                         no_var_err(&name);
                                     });
@@ -533,7 +531,6 @@ pub fn lex(input: &str) -> Vec<Token> {
                 "from" => Token::From, //for ranges
                 "to" => Token::To,
                 "stepping" => Token::Stepping,
-                "backwards" => Token::Backwards,
                 _ if word.starts_with('"') && word.ends_with('"') => {
                     let mut trimmed = word.to_string().replace("­", " ");
                     trimmed.remove(0);
@@ -828,10 +825,6 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
 
                             if let Some(Token::Stepping) = iter.peek() {
                                 iter.next();
-                                if let Some(Token::Backwards) = iter.peek(){
-                                    iter.next();
-                                    direction = IterDirection::Backwards;
-                                }
                                 
                                 if let Some(Token::By) = iter.peek(){
                                     iter.next();
@@ -854,7 +847,7 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                             let step = parse(step)[0].clone();
                             eat(&mut iter, Token::Do);
                             let block_tokens = eat_block_delimited_by(&mut iter, Token::Do, Token::End);
-                            output.push(Expr::For(ForBlock::Range(Box::new(Expr::Ident(name.clone())), Box::new(start), Box::new(end), Box::new(Expr::Block(parse(block_tokens))), Box::new(step), direction)));
+                            output.push(Expr::For(ForBlock::Range(Box::new(Expr::Ident(name.clone())), Box::new(start), Box::new(end), Box::new(Expr::Block(parse(block_tokens))), Box::new(step))));
 
                         },
                         Some(tok) => {
