@@ -3,7 +3,7 @@ mod larynx;
 
 const DEBUG_LEXER: bool = false;
 const DEBUG_PARSER: bool = false;
-const DEBUG_BLOCK_PARSING: bool = true;
+const DEBUG_BLOCK_PARSING: bool = false;
 const DEBUG_OPERATOR_STACK: bool = false;
 
 fn main() {
@@ -22,7 +22,7 @@ fn main() {
 
     let mut variables: HashMap<String, larynx::Value> = HashMap::new();
     for expr in ast {
-        if DEBUG_PARSER{
+        if DEBUG_PARSER {
             println!("evaluating expr: {expr:#?}");
         }
         expr.eval(&mut variables);

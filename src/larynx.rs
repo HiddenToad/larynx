@@ -58,7 +58,6 @@ pub enum Token {
     To,
     Stepping,
 
-
     Ident(String),
     SentinelOp,
     Newline,
@@ -69,7 +68,7 @@ impl Token {
         match self {
             Token::SentinelOp => 0,
             Token::Say | Token::Is | Token::Not | Token::Delete => 1,
-            Token::And | Token::Or  => 2,
+            Token::And | Token::Or => 2,
             Token::Equals => 3,
             Token::Plus | Token::Minus => 4,
             Token::Divided | Token::Times | Token::Remainder => 5,
@@ -161,19 +160,19 @@ pub enum BinOp {
     And(Box<Expr>, Box<Expr>),
     Or(Box<Expr>, Box<Expr>),
     Equals(Box<Expr>, Box<Expr>),
-    Remainder(Box<Expr>, Box<Expr>)
+    Remainder(Box<Expr>, Box<Expr>),
 }
 
 #[derive(Clone, Debug)]
-pub enum IterDirection{
+pub enum IterDirection {
     Forwards,
-    Backwards
+    Backwards,
 }
 
 #[derive(Clone, Debug)]
-pub enum ForBlock{
+pub enum ForBlock {
     Iter(Box<Expr>, Box<Expr>, Box<Expr>, usize, IterDirection), //Iter(Ident, Collection, Block, Step, Direction)
-    Range(Box<Expr>, Box<Expr>, Box<Expr>, Box<Expr>, Box<Expr>) //Iter(Ident, Start, End, Block, Step, Direction)
+    Range(Box<Expr>, Box<Expr>, Box<Expr>, Box<Expr>, Box<Expr>), //Iter(Ident, Start, End, Block, Step, Direction)
 }
 
 #[derive(Clone, Debug, Default)]
@@ -184,8 +183,8 @@ pub enum Expr {
     BinOp(BinOp),
     Block(Vec<Expr>),
     If(Box<Expr>, Box<Expr>, Option<Box<Expr>>), //If(Condition, Block, Option<Elseblock>)
-    While(Box<Expr>, Box<Expr>), //While(Condition, Block)
-    For(ForBlock), 
+    While(Box<Expr>, Box<Expr>),                 //While(Condition, Block)
+    For(ForBlock),
     #[default]
     Nothing,
 }
@@ -292,12 +291,12 @@ impl Expr {
                     }
                 }
 
-                BinOp::Remainder(arg1, arg2) =>{
+                BinOp::Remainder(arg1, arg2) => {
                     let arg1 = arg1.eval(variables);
                     let arg2 = arg2.eval(variables);
                     if let Value::Number(n1) = arg1 {
                         if let Value::Number(n2) = arg2 {
-                            if n2 != 0.{
+                            if n2 != 0. {
                                 Value::Number(n1 % n2)
                             } else {
                                 err("cannot calculate remainder when divided by zero!")
@@ -419,65 +418,65 @@ impl Expr {
                 }
             }
 
-            Expr::For(ForBlock::Range(ident, start, end, block, step,)) => {
-                if let Expr::Ident(name) = &**ident{
-
-                        let (start, end) = (start.eval(variables), end.eval(variables));
-                        let Value::Number(start) = start else{
+            Expr::For(ForBlock::Range(ident, start, end, block, step)) => {
+                if let Expr::Ident(name) = &**ident {
+                    let (start, end) = (start.eval(variables), end.eval(variables));
+                    let Value::Number(start) = start else{
                             err("start of for loop must be a number");
                         };
-                        let Value::Number(end) = end else{
+                    let Value::Number(end) = end else{
                             err("end of for loop must be a number");
                         };
 
-                        if start.fract() != 0.{
-                            err("start of for loop must be a whole number");
-                        }
+                    if start.fract() != 0. {
+                        err("start of for loop must be a whole number");
+                    }
 
-                        if end.fract() != 0.{
-                            err("end of for loop must be a whole number");
-                        }
+                    if end.fract() != 0. {
+                        err("end of for loop must be a whole number");
+                    }
 
-                        let (start, end) = (start as i64, end as i64);
-                        variables.insert(name.to_string(), Value::Number(start as f64));
+                    let (start, end) = (start as i64, end as i64);
+                    variables.insert(name.to_string(), Value::Number(start as f64));
 
-                        let Value::Number(step) = step.eval(variables) else{
+                    let Value::Number(step) = step.eval(variables) else{
                             err("step of for loop must be a number");
                         };
-                        
-                        if step.fract() != 0.{
-                            err("for loop step must be a whole number");
-                        } 
-                        let step = step as usize;
-                        match start < end{
-                            true => {
-                                let mut ret: Value = Value::Nothing;
-                                for i in (start..=end).step_by(step){
-                                    let var: &mut Value = variables.get_mut(name).unwrap_or_else(||{
+
+                    if step.fract() != 0. {
+                        err("for loop step must be a whole number");
+                    }
+                    let step = step as usize;
+                    match start < end {
+                        true => {
+                            let mut ret: Value = Value::Nothing;
+                            for i in (start..=end).step_by(step) {
+                                let var: &mut Value =
+                                    variables.get_mut(name).unwrap_or_else(|| {
                                         no_var_err(&name);
                                     });
-                                    *var = Value::Number(i as f64);
-                                    ret = block.eval(variables);
-                                }
-                                ret
-                            },
-                            false => {
-                                let mut ret: Value = Value::Nothing;
-                                for i in (end..=start).rev().step_by(step){
-                                    let var: &mut Value = variables.get_mut(name).unwrap_or_else(||{
-                                        no_var_err(&name);
-                                    });
-                                    *var = Value::Number(i as f64);
-                                    ret = block.eval(variables);
-                                }
-                                ret
+                                *var = Value::Number(i as f64);
+                                ret = block.eval(variables);
                             }
+                            ret
                         }
-                    } else {
-                        err("end of range must be a number in for loop");
+                        false => {
+                            let mut ret: Value = Value::Nothing;
+                            for i in (end..=start).rev().step_by(step) {
+                                let var: &mut Value =
+                                    variables.get_mut(name).unwrap_or_else(|| {
+                                        no_var_err(&name);
+                                    });
+                                *var = Value::Number(i as f64);
+                                ret = block.eval(variables);
+                            }
+                            ret
+                        }
                     }
-                    }
-            
+                } else {
+                    err("end of range must be a number in for loop");
+                }
+            }
 
             Expr::For(ForBlock::Iter(ident, collection, block, step, direction)) => {
                 unimplemented!()
@@ -600,8 +599,8 @@ fn make_tree(last: &Token, operands: &mut Vec<Expr>) {
         | Token::Is
         | Token::And
         | Token::Or
-        | Token::Equals |
-        Token::Remainder => {
+        | Token::Equals
+        | Token::Remainder => {
             let (a, b) = get_bin(operands);
             operands.push(last.to_binop(a, b).unwrap());
         }
@@ -628,7 +627,7 @@ fn eat_block_delimited_by<'a>(
     start: Token,
     end: Token,
 ) -> Vec<Token> {
-    if DEBUG_BLOCK_PARSING{
+    if DEBUG_BLOCK_PARSING {
         println!("eating block with format {start} BLOCK {end}");
     }
     let mut block_tokens = vec![];
@@ -642,21 +641,30 @@ fn eat_block_delimited_by<'a>(
     while let Some(token) = iter.next() {
         if token == &end {
             depth -= 1;
-        } else if token == &start || token == &Token::If || token == &Token::While || token == &Token::Else || token == &Token::For{
-            if token == &Token::Else && iter.peek().unwrap_or_else(||{err("unexpected end of file when parsing block")}) == &&Token::If{
+        } else if token == &start
+            || token == &Token::If
+            || token == &Token::While
+            || token == &Token::Else
+            || token == &Token::For
+        {
+            if token == &Token::Else
+                && iter
+                    .peek()
+                    .unwrap_or_else(|| err("unexpected end of file when parsing block"))
+                    == &&Token::If
+            {
                 continue;
             }
             depth += 1;
-
-        } else if token == &Token::Newline{
+        } else if token == &Token::Newline {
             *LINE_NUM.write().unwrap() += 1;
-        } 
+        }
 
         if depth == 0 {
             found_block = true;
             break;
         }
-        if DEBUG_BLOCK_PARSING{
+        if DEBUG_BLOCK_PARSING {
             println!("found {} token", token);
         }
         block_tokens.push(token.clone());
@@ -670,7 +678,7 @@ fn eat_block_delimited_by<'a>(
         }
 
         block_tokens.dedup_by(|a, b| (a == &mut Token::Newline) && b == a);
-        if DEBUG_BLOCK_PARSING{
+        if DEBUG_BLOCK_PARSING {
             println!("final block: {block_tokens:?}");
         }
 
@@ -679,7 +687,7 @@ fn eat_block_delimited_by<'a>(
 }
 
 pub fn parse(input: Vec<Token>) -> Vec<Expr> {
-    if DEBUG_LEXER{
+    if DEBUG_LEXER {
         println!("parse called with tokens: {input:#?}");
     }
     let mut operands = vec![];
@@ -687,8 +695,10 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
     let mut iter = input.iter().peekable();
     let mut operators: Vec<Token> = vec![Token::SentinelOp];
     while let Some(token) = iter.next() {
-        if DEBUG_OPERATOR_STACK{
-            println!("operators: {operators:#?}\n\noperands: {operands:#?}\n\noutput: {output:#?}\n\n");
+        if DEBUG_OPERATOR_STACK {
+            println!(
+                "operators: {operators:#?}\n\noperands: {operands:#?}\n\noutput: {output:#?}\n\n"
+            );
         }
         match token {
             Token::Num(n) => {
@@ -750,7 +760,7 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                 cond_tokens.push(Token::Newline);
 
                 let cond_expr = parse(cond_tokens)[0].clone();
-                *LINE_NUM.write().unwrap() -= 1; 
+                *LINE_NUM.write().unwrap() -= 1;
                 let block_expr = parse(block_tokens);
 
                 output.push(Expr::While(
@@ -804,15 +814,15 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                     Box::new(Expr::Block(block_expr)),
                     falseblock_tokens,
                 ));
-            },
+            }
 
             Token::For => {
                 let mut step: usize = 1;
                 let mut direction = IterDirection::Forwards;
                 eat(&mut iter, Token::Every);
-                if let Some(Token::Ident(name)) = iter.peek(){
+                if let Some(Token::Ident(name)) = iter.peek() {
                     iter.next(); //consume ident
-                    match iter.peek(){
+                    match iter.peek() {
                         Some(Token::In) => unimplemented!(),
                         Some(Token::From) => {
                             iter.next();
@@ -820,16 +830,16 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                             let mut end: Vec<Token> = vec![];
                             let mut step: Vec<Token> = vec![];
 
-                            while let Some(token) = iter.next(){
-                                if *token != Token::To{
+                            while let Some(token) = iter.next() {
+                                if *token != Token::To {
                                     start.push(token.clone());
                                 } else {
                                     break;
                                 }
                             }
 
-                            while let Some(&token) = iter.peek(){
-                                if token != &Token::Stepping && token != &Token::Do{
+                            while let Some(&token) = iter.peek() {
+                                if token != &Token::Stepping && token != &Token::Do {
                                     iter.next();
                                     end.push(token.clone());
                                 } else {
@@ -837,28 +847,27 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                                 }
                             }
 
-                            if start.is_empty(){
+                            if start.is_empty() {
                                 err("expected start of for loop");
                             }
-                            if end.is_empty(){
+                            if end.is_empty() {
                                 err("expected end of for loop");
                             }
 
                             start.push(Token::Newline);
                             end.push(Token::Newline);
 
-
                             let start = parse(start)[0].clone();
                             let end = parse(end)[0].clone();
 
                             if let Some(Token::Stepping) = iter.peek() {
                                 iter.next();
-                                
-                                if let Some(Token::By) = iter.peek(){
+
+                                if let Some(Token::By) = iter.peek() {
                                     iter.next();
-                                    
-                                    while let Some(&token) = iter.peek(){
-                                        if token != &Token::Do{
+
+                                    while let Some(&token) = iter.peek() {
+                                        if token != &Token::Do {
                                             iter.next();
                                             step.push(token.clone());
                                         } else {
@@ -866,34 +875,36 @@ pub fn parse(input: Vec<Token>) -> Vec<Expr> {
                                         }
                                     }
                                 }
-                                
                             }
-                            if step.is_empty(){
+                            if step.is_empty() {
                                 step.push(Token::Num(1.))
                             }
                             step.push(Token::Newline);
                             let step = parse(step)[0].clone();
                             eat(&mut iter, Token::Do);
-                            let block_tokens = eat_block_delimited_by(&mut iter, Token::Do, Token::End);
-                            output.push(Expr::For(ForBlock::Range(Box::new(Expr::Ident(name.clone())), Box::new(start), Box::new(end), Box::new(Expr::Block(parse(block_tokens))), Box::new(step))));
-
-                        },
-                        Some(tok) => {
-                            err(&format!("expected 'in' or 'from', not '{}'", tok)) 
+                            let block_tokens =
+                                eat_block_delimited_by(&mut iter, Token::Do, Token::End);
+                            output.push(Expr::For(ForBlock::Range(
+                                Box::new(Expr::Ident(name.clone())),
+                                Box::new(start),
+                                Box::new(end),
+                                Box::new(Expr::Block(parse(block_tokens))),
+                                Box::new(step),
+                            )));
                         }
+                        Some(tok) => err(&format!("expected 'in' or 'from', not '{}'", tok)),
                         None => {
                             err("expected 'in' or 'from', not end of file");
                         }
                     }
-
                 } else {
                     err("expected new variable name in for loop");
                 }
-            },
+            }
 
             Token::By | Token::Else | Token::End => err(&format!("unexpected token {token}")),
             Token::Newline => {
-     //           *LINE_NUM.write().unwrap() += 1;
+                //           *LINE_NUM.write().unwrap() += 1;
 
                 //println!("newline found at end");
                 if let Some(_) = operators.last() {
