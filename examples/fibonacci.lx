@@ -1,4 +1,4 @@
-n is 5
+n is 10
 b is 0
 a is 1
 
@@ -7,10 +7,8 @@ if n equals 0 or n equals 1 then
 end
 else
     for every i from 2 to n minus 1 do
-        say i
-        temp is b
-        b is a
-        a is temp plus a
+        a is a plus b
+        b is a minus b
     end
 end
 
