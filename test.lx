@@ -1,22 +1,16 @@
-x is 0
-y is 10
-i is 4
-z is 9999999999999999999999999999999999999999999999999
-say z
+n is 5
+b is 0
+a is 1
 
-
-while not x equals y do
-    say x
-    if not i equals 1 then
-        i is i minus 1
-    end 
-    else
-        i is 4
+if n equals 0 or n equals 1 then
+    say n
+end 
+else
+    for every i from 2 to n minus 1 do
+        temp is b
+        b is a
+    a is temp plus a
     end
-
-    x is x plus i
 end
 
-
-
-say x
+say a

@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 mod larynx;
 
-const DEBUG_LEXER: bool = false;
+const DEBUG_LEXER: bool = true;
 const DEBUG_PARSER: bool = true;
-const DEBUG_BLOCK_PARSING: bool = false;
+const DEBUG_BLOCK_PARSING: bool = true;
 const DEBUG_OPERATOR_STACK: bool = false;
 
 fn main() {
