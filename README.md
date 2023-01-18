@@ -5,6 +5,12 @@
 ### About
 larynx is very much in development. it should not be expected to always run properly or have any kind of stable API. when it is complete, larynx will be a tool for those who want to learn to program but find themselves intimidated by symbols and the like.
 
+### To read these docs:
+
+when representing how something is parsed, anything in square brackets [] is required, anything in curly braces {} is optional, and anything written literally is a hardcoded token.
+
+these docs assume that you have a background in programming. later, (as larynx is intended for beginners), new docs will be written that explain basic programming concepts.
+
 ## Docs
 
 #### Data types
@@ -72,7 +78,7 @@ end
 ```
 
 #### Loops
-currently, the only loops in larynx are while loops. while loops are declared as follows:
+currently, the only loops in larynx are while loops and for loops. while loops are declared as follows:
 
 ```
 while [EXPRESSION] do
@@ -80,3 +86,10 @@ while [EXPRESSION] do
 end
 ```
 
+for loops are a bit more complicated in syntax:
+```
+for every [IDENTIFIER] from [START] to [END] {stepping by [EXPRESSION]} do
+    [BLOCK]
+end
+```
+if the step is not specified, it is assumed to be 1. if START > END, then the loop will iterate backwards. for loops are inclusive to END.
